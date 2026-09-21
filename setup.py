@@ -5,7 +5,7 @@ VERSION        = '0.1.0'
 DESCRIPTION    = 'Python YouTube Music Web API Client'
 AUTHOR         = 'Tom Bulled'
 URL            = 'https://github.com/tombulled/python-youtube-music'
-PACKAGES       = setuptools.find_packages()
+PACKAGES       = setuptools.find_packages(where='src')
 PYTHON_VERSION = '>=3.0.0'
 
 DEPENDENCIES_REQUIRED = \
@@ -34,6 +34,7 @@ config = dict \
    description      = DESCRIPTION,
    author           = AUTHOR,
    packages         = PACKAGES,
+   package_dir      = {'': 'src'},
    install_requires = DEPENDENCIES_REQUIRED,
    extras_require   = DEPENDENCIES_OPTIONAL,
    python_requires  = PYTHON_VERSION,
