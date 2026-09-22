@@ -6,7 +6,7 @@ import pkgutil
 import importlib
 import sys
 from typing import Callable
-from _frozen_importlib import ModuleSpec
+from importlib.machinery import ModuleSpec
 
 def include(spec: ModuleSpec, func: Callable = None) -> dict:
     '''
