@@ -4,6 +4,7 @@ Module containing the utility function: include
 
 import pkgutil
 import importlib
+import os
 import sys
 from typing import Callable
 from importlib.machinery import ModuleSpec
@@ -36,33 +37,69 @@ def include(spec: ModuleSpec, func: Callable = None) -> dict:
             >>>
     '''
 
+    if not spec or not getattr(spec, 'submodule_search_locations', None):
+        return {}
+
     if not func:
         func = lambda module_name: True
 
-    importlib.util.module_from_spec(spec)
+    try:
+        importlib.util.module_from_spec(spec)
+    except Exception:
+        pass
 
-    module = sys.modules[spec.name]
+    module = sys.modules.get(spec.name)
 
-    sub_modules = pkgutil.iter_modules(spec.submodule_search_locations)
+    sub_module_names = []
+    try:
+        sub_modules = pkgutil.iter_modules(spec.submodule_search_locations)
+        for sub_module in sub_modules:
+            if sub_module.name and not sub_module.name.startswith('__'):
+                sub_module_names.append(sub_module.name)
+    except Exception:
+        pass
+
+    # Fallback to os.listdir if pkgutil.iter_modules didn't find modules in virtual filesystem
+    if not sub_module_names:
+        for loc in spec.submodule_search_locations:
+            try:
+                for fname in os.listdir(loc):
+                    if fname.startswith('__') or fname.startswith('.'):
+                        continue
+                    if fname.endswith('.py'):
+                        sub_module_names.append(fname[:-3])
+                    elif os.path.isdir(os.path.join(loc, fname)) and os.path.exists(os.path.join(loc, fname, '__init__.py')):
+                        sub_module_names.append(fname)
+            except Exception:
+                pass
+
+    # Deduplicate module names while preserving order
+    seen = set()
+    unique_names = []
+    for name in sub_module_names:
+        if name not in seen:
+            seen.add(name)
+            unique_names.append(name)
 
     imported = {}
 
-    for sub_module in sub_modules:
-        sub_module_name = sub_module.name
+    for sub_module_name in unique_names:
+        try:
+            sub_module = importlib.import_module(
+                name=f'.{sub_module_name}',
+                package=spec.name,
+            )
+        except Exception:
+            continue
 
-        sub_module = importlib.import_module \
-        (
-            name    = f'.{sub_module_name}',
-            package = spec.name,
-        )
+        obj = getattr(sub_module, sub_module_name, None) or sub_module
 
+        if not func(obj):
+            continue
 
-        object = getattr(sub_module, sub_module_name, None) or sub_module
+        if module:
+            setattr(module, sub_module_name, obj)
 
-        if not func(object): continue
-
-        setattr(module, sub_module_name, object)
-
-        imported[sub_module_name] = object
+        imported[sub_module_name] = obj
 
     return imported
