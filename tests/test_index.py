@@ -40,6 +40,21 @@ class TestWorkerIndex(unittest.TestCase):
         except OSError as e:
             self.fail(f"cert_verify raised OSError: {e}")
 
+    def test_pyodide_http_without_xmlhttprequest(self):
+        """Verify pyodide_http patch_all handles js module without XMLHttpRequest gracefully."""
+        import sys
+        import types
+        import pyodide_http
+
+        # Create mock js module without XMLHttpRequest
+        mock_js = types.ModuleType("js")
+        mock_js.fetch = lambda *args, **kwargs: None
+
+        with patch.dict(sys.modules, {"js": mock_js}):
+            # should_patch should check hasattr without raising ImportError for XMLHttpRequest
+            self.assertTrue(pyodide_http.should_patch())
+            pyodide_http.patch_all()
+
 
 if __name__ == "__main__":
     unittest.main()

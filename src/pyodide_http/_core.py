@@ -74,14 +74,18 @@ def show_streaming_warning():
 
 def send(request: Request, stream: bool = False) -> Response:
     if request.params:
-        from js import URLSearchParams
+        import js
+        if hasattr(js, "URLSearchParams"):
+            params = js.URLSearchParams.new()
+            for k, v in request.params.items():
+                params.append(k, v)
+            request.url += "?" + params.toString()
+        else:
+            from urllib.parse import urlencode
+            query = urlencode(request.params)
+            request.url += ("&" if "?" in request.url else "?") + query
 
-        params = URLSearchParams.new()
-        for k, v in request.params.items():
-            params.append(k, v)
-        request.url += "?" + params.toString()
-
-    from js import XMLHttpRequest
+    import js
 
     try:
         from js import importScripts
@@ -89,6 +93,7 @@ def send(request: Request, stream: bool = False) -> Response:
         _IN_WORKER = True
     except ImportError:
         _IN_WORKER = False
+
     # support for streaming workers (in worker )
     if stream:
         if not _IN_WORKER:
@@ -100,6 +105,47 @@ def send(request: Request, stream: bool = False) -> Response:
                 stream = False
             else:
                 return result
+
+    has_xhr = hasattr(js, "XMLHttpRequest")
+    has_fetch = hasattr(js, "fetch")
+
+    if not has_xhr and has_fetch:
+        # Fallback to JavaScript global fetch API using run_sync if available
+        headers = {
+            k: v for k, v in request.headers.items() if k.lower() not in HEADERS_TO_IGNORE
+        }
+        fetch_opts = {
+            "method": request.method,
+            "headers": to_js(headers, dict_converter=js.Object.fromEntries),
+        }
+        if request.body:
+            fetch_opts["body"] = to_js(request.body)
+
+        try:
+            from pyodide.ffi import run_sync
+            fetch_promise = js.fetch(request.url, to_js(fetch_opts, dict_converter=js.Object.fromEntries))
+            res = run_sync(fetch_promise)
+
+            resp_headers = {}
+            if hasattr(res, "headers") and hasattr(res.headers, "entries"):
+                header_iter = res.headers.entries()
+                while True:
+                    entry = header_iter.next()
+                    if getattr(entry, "done", False):
+                        break
+                    resp_headers[str(entry.value[0])] = str(entry.value[1])
+
+            buf_promise = res.arrayBuffer()
+            array_buf = run_sync(buf_promise)
+            body = array_buf.to_py().tobytes()
+            return Response(status_code=res.status, headers=resp_headers, body=body)
+        except Exception:
+            pass
+
+    if not has_xhr:
+        raise _RequestError("XMLHttpRequest is not defined in js global scope and fetch fallback failed", request=request)
+
+    XMLHttpRequest = js.XMLHttpRequest
 
     xhr = XMLHttpRequest.new()
     # set timeout only if pyodide is in a worker, because
