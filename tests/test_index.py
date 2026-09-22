@@ -30,6 +30,16 @@ class TestWorkerIndex(unittest.TestCase):
         finally:
             index._api = original_api
 
+    def test_cert_verify_bypass(self):
+        """Verify that requests HTTPAdapter.cert_verify does not raise OSError for certifi bundle."""
+        import requests
+        adapter = requests.adapters.HTTPAdapter()
+        # Passing None for conn should not raise OSError when cert_verify is patched to noop
+        try:
+            adapter.cert_verify(None, "https://music.youtube.com", True, None)
+        except OSError as e:
+            self.fail(f"cert_verify raised OSError: {e}")
+
 
 if __name__ == "__main__":
     unittest.main()

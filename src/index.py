@@ -10,6 +10,17 @@ try:
 except Exception:
     pass
 
+# In Pyodide/Cloudflare Workers environment, network requests are handled by browser/worker fetch.
+# certifi CA certificate bundle file paths (e.g. /session/metadata/certifi/cacert.pem) do not exist
+# on disk in Cloudflare Workers V8 filesystem. Prevent requests from checking local cert bundle file path.
+try:
+    import requests
+    def _noop_cert_verify(self, conn, url, verify, cert):
+        pass
+    requests.adapters.HTTPAdapter.cert_verify = _noop_cert_verify
+except Exception:
+    pass
+
 # Ensure current directory (src/) is in sys.path so 'ytm' can be imported
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
