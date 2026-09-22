@@ -3,6 +3,13 @@ import os
 import sys
 from urllib.parse import parse_qs, urlparse
 
+# Patch requests/urllib3 in Pyodide/Emscripten environment if pyodide_http is available
+try:
+    import pyodide_http
+    pyodide_http.patch_all()
+except Exception:
+    pass
+
 # Ensure current directory (src/) is in sys.path so 'ytm' can be imported
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
