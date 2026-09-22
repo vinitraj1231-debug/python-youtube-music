@@ -15,6 +15,7 @@ Python YouTube Music Web API Client - **No longer under *active* development, in
 ## Contents:
 * [Dependencies](#dependencies)
 * [Installation](#installation)
+* [Cloudflare Workers Deployment](#cloudflare-workers-deployment)
 * [Getting Started](#getting-started)
 * [Methods](#methods)
 
@@ -62,6 +63,38 @@ YouTubeMusicDL support
 user@host:~$ pip install .[dl] # You may need to use: python3 -m pip install .[dl]
 Successfully installed ytm
 ```
+
+## Cloudflare Workers Deployment
+
+This project supports deployment as a **Cloudflare Worker** using Python runtime (`python_workers`).
+
+### Prerequisites
+* **Node.js** (v18+)
+* **Cloudflare Account**
+
+### Build & Deployment Commands
+* **Build Command:** No custom build command is required. Wrangler automatically bundles Python Workers from `src/index.py` and includes modules inside `src/`.
+* **Install Dependencies Command:** `pip install -r requirements.txt`
+* **Deploy Command:**
+  ```bash
+  npx wrangler deploy
+  ```
+
+### Step-by-Step Deployment
+1. **Login to Cloudflare:**
+   ```bash
+   npx wrangler login
+   ```
+2. **Local Testing:**
+   ```bash
+   npx wrangler dev
+   ```
+3. **Deploy:**
+   ```bash
+   npx wrangler deploy
+   ```
+
+For more details on API routes and deployment fixes, see [CLOUDFLARE.md](CLOUDFLARE.md).
 
 ## Getting Started
 Create an API instance

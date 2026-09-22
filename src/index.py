@@ -3,8 +3,8 @@ import os
 import sys
 from urllib.parse import parse_qs, urlparse
 
-# Ensure repository root is in sys.path so 'ytm' can be imported
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Ensure current directory (src/) is in sys.path so 'ytm' can be imported
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from js import Headers, Response
 import ytm
