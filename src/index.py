@@ -13,13 +13,27 @@ except Exception:
 # Ensure current directory (src/) is in sys.path so 'ytm' can be imported
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from js import Headers, Response
+try:
+    from js import Headers, Response
+except ImportError:
+    Headers = None
+    Response = None
+
 import ytm
 
-api = ytm.YouTubeMusic()
+_api = None
+
+
+def get_api():
+    global _api
+    if _api is None:
+        _api = ytm.YouTubeMusic()
+    return _api
 
 
 def make_response(data, status=200):
+    if Response is None or Headers is None:
+        return {"data": data, "status": status}
     headers = Headers.new()
     headers.set("Content-Type", "application/json; charset=utf-8")
     headers.set("Access-Control-Allow-Origin", "*")
@@ -66,6 +80,7 @@ async def on_fetch(request, env):
 
         q = params.get("q", [""])[0]
         item_id = params.get("id", [""])[0]
+        api = get_api()
 
         if path == "/search":
             if not q:
